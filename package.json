@@ -1,0 +1,26 @@
+{
+  "name": "realtime-chat",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.3",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.1",
+    "express-session": "^1.18.1",
+    "iconv-lite": "^0.6.3",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.11.4",
+    "socket.io": "^4.8.1",
+    "uuid": "^11.0.3",
+    "ws": "^8.18.0"
+  }
+}

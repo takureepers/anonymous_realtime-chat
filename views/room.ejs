@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const roomId = "<%= room.roomId %>";
+        const userName = "<%= userName %>";
+    </script>
+</head>
+<body class="d-flex flex-column vh-100">
+
+    <!-- container -->
+    <div class="container-fluid d-flex flex-column justify-content-between h-100 py-3 w-100">
+
+        <!-- Message Display Area -->
+        <div id="messages" class="border border-secondary rounded bg-light p-3 overflow-auto flex-grow-1 d-flex flex-column">
+            <div class="text-center fs-6 mb-2">Chat Room: <%= room.roomName %></div>
+        </div>
+
+        <!-- Typing Status -->
+        <div id="typing-status" class="text-muted mb-2 fs-6"></div>
+
+        <!-- Message Input Area -->
+        <div class="input-group">
+            <!-- Textarea for message input -->
+            <textarea id="msg" class="form-control" placeholder="メッセージ入力..." autocomplete="off" rows="1" style="resize: none;"></textarea>
+
+            <input id="select-files" type="file" style="display: none;" multiple>
+            <button id="file-btn" class="btn btn-secondary">
+                <i class="bi bi-paperclip"></i>
+            </button>
+
+            <button id="send-btn" class="btn btn-primary">
+                <i class="bi bi-send"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bootstrap and Socket.io Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+
+        const socket = io();
+
+        // チャットルームに参加
+        socket.emit('joinRoom', roomId);
+
+        // メッセージ送信処理
+        async function sendMessage() {
+            const message = document.getElementById('msg').value.trim();
+            // メッセージまたは添付ファイルがなければ警告を表示
+            if (message === '') {
+                return ;
+            }
+
+            // サーバーにメッセージを送信
+            socket.emit('chatMessage', { roomId, message, userName });
+
+            // 入力中の状態を解除
+            socket.emit('typing', { roomId, userName, typing: false });
+
+            // 入力フィールドをクリア
+            document.getElementById('msg').value = '';
+            document.getElementById('typing-status').textContent = '';  // 入力中の状態を消す
+        }
+
+        // 入力中の状態をサーバーに通知
+        document.getElementById('msg').addEventListener('input', () => {
+            socket.emit('typing', { roomId, userName, typing: true });
+        });
+
+        // フォーカスが外れたときに入力中を解除
+        document.getElementById('msg').addEventListener('blur', () => {
+            socket.emit('typing', { roomId, userName, typing: false });
+        });
+
+        // 送信ボタンのクリックイベント
+        document.getElementById('send-btn').addEventListener('click', sendMessage);
+    
+        // Enterキーで送信、Shift+Enterで改行を実現するイベントリスナー
+        document.getElementById('msg').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                if (event.shiftKey) {
+                    // Shift+Enterの場合は改行を挿入
+                    const cursorPosition = event.target.selectionStart;
+                    const message = event.target.value;
+                    event.target.value = message.slice(0, cursorPosition) + '\n' + message.slice(cursorPosition);
+                    event.target.selectionStart = event.target.selectionEnd = cursorPosition + 1; // カーソル位置を調整
+                    event.preventDefault(); // デフォルト動作を無効化
+                } else {
+                    // Enterのみの場合はメッセージを送信
+                    event.preventDefault(); // デフォルトのEnterキーの動作を無効化
+                    sendMessage(); // メッセージ送信処理を実行
+                }
+            }
+        });
+
+    // 添付ファイルボタンのクリックイベント
+    document.getElementById('file-btn').addEventListener('click', () => {
+        document.getElementById('select-files').click();
+    });
+
+// ファイル選択時のイベント
+document.getElementById('select-files').addEventListener('change', async (event) => {
+    const files = event.target.files; // 選択された複数のファイルを取得
+    if (!files.length) return;
+
+    for (const file of files) { // 各ファイルをループ処理
+        const formData = new FormData();
+        formData.append('file', file); // 各ファイルをFormDataに追加
+        formData.append('roomId', roomId); // 各ファイルをFormDataに追加
+
+
+        try {
+            // サーバーにファイルをアップロード
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                alert('ファイルのアップロードに失敗しました。');
+                continue; // 次のファイルを処理
+            }
+
+            const data = await response.json();
+
+            const filePath = data.filePath;
+            const fileName = data.fileName;
+
+            let fileDisplay;
+
+            // アップロードされたファイルが画像の場合、画像を表示
+            if (file.type.startsWith('image/')) {
+                fileDisplay =
+                    //`<div style="display: flex; justify-content: center; align-items: center; max-width: 50%; margin: 0 auto; padding: 0;">
+                        `<img src="${filePath}" alt="${fileName}" style="display: block; max-width: 100%; max-height: 500px; margin: 0;">
+                    </div>`;
+            } else if (file.type.startsWith('video/')) {
+                fileDisplay = `<video controls style="display: block; max-width: 100%; max-height: 500px; margin: 0;">
+                                    <source src="${filePath}" type="${file.type}">
+                                    Your browser does not support the video tag.
+                                </video>`;
+
+            } else if (file.type.startsWith('audio/')) {
+                fileDisplay = `<audio controls style="display: block; max-width: 100%; margin: 0;">
+                                    <source src="${filePath}" type="${file.type}">
+                                    Your browser does not support the audio tag.
+                                </audio>`;
+            } else {
+                fileDisplay = `<a href="${filePath}" download="${fileName}"
+                                style="display: inline-block; padding: 10px 15px; background-color: #ffffff; color: #007bff; text-decoration: none; border-radius: 5px; border: 1px solid #007bff;">
+                                ${fileName}
+                                <i class="bi bi-download" style="margin-left: 5px;"></i>
+                            </a>`;
+                    }
+
+            // サーバーにファイル情報を送信
+            socket.emit('chatMessage', {
+                roomId,
+                message: fileDisplay,
+                userName,
+            });
+        } catch (error) {
+            alert('ファイルアップロード中にエラーが発生しました。');
+        }
+    }
+
+    // 入力フィールドのリセット
+    document.getElementById('select-files').value = '';
+});
+
+    // サーバーからメッセージを受信
+    socket.on('message', ({ userName: senderName, message }) => {
+        const messages = document.getElementById('messages');
+        const newMessage = document.createElement('div');
+
+        // 自分のメッセージかどうかを判定
+    if (senderName === userName) {
+        newMessage.classList.add('p-2', 'mb-2', 'bg-primary', 'text-white', 'border', 'rounded', 'ms-auto', 'auto-width', 'text-wrap', 'text-break', 'd-inline-block');
+    } else {
+        newMessage.classList.add('p-2', 'mb-2', 'bg-white', 'border', 'rounded', 'me-auto', 'auto-width', 'text-wrap', 'text-break', 'd-inline-block');
+    }
+    newMessage.setAttribute('style', 'max-width: 50%;'); // max-widthを直接設定
+    
+            if (message) {
+                newMessage.innerHTML = message;
+            }
+
+            // 新しいメッセージを表示
+            messages.appendChild(newMessage);
+    
+            // メッセージエリアを最新のメッセージにスクロール
+            messages.scrollTop = messages.scrollHeight;
+        });
+    
+        // サーバーから「入力中」の状態を受信
+        socket.on('typing', ({ userName, typing }) => {
+            const typingStatus = document.getElementById('typing-status');
+            if (typing) {
+                typingStatus.textContent = `${userName} が入力中...`;
+            } else {
+                typingStatus.textContent = '';  // 入力中の状態を消す
+            }
+        });
+    </script>
+</body>
+</html>

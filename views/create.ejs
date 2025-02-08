@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ルーム作成</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="d-flex justify-content-center align-items-center" style="height: 100vh; background-color: #f8f9fa;">
+
+    <div class="card shadow" style="width: 100%; max-width: 400px;">
+        <div class="card-body">
+            <h4 class="card-title text-center mb-4">ルーム作成</h4>
+            <form action="/rooms/create" method="POST">
+                <!-- room name -->
+                <div class="mb-3">
+                    <label for="roomName" class="form-label">ルーム名</label>
+                    <input type="text" class="form-control" id="roomName" name="roomName" placeholder="ルーム名を入力" required>
+                </div>
+                <!-- room owner -->
+                <div class="mb-3">
+                    <label for="ownerName" class="form-label">ルーム主の名前</label>
+                    <input type="text" class="form-control" id="ownerName" name="ownerName" placeholder="ルーム主の名前を入力" required>
+                </div>
+                <!-- password -->
+                <div class="mb-3">
+                    <label for="password" class="form-label">パスワード</label>
+                    <input type="password" class="form-control" id="password" name="password" placeholder="パスワード" required>
+                </div>
+                <!-- create-btn -->
+                <button type="submit" class="btn btn-primary w-100">作成</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
